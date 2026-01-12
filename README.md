@@ -9,6 +9,7 @@ A beautiful, interactive circular habit tracker built with vanilla JavaScript an
 - **Customizable Habits**: Edit habit names directly in the interface
 - **Month Display**: Label your tracker with the current month
 - **Color-Coded**: Each habit has its own distinct pastel color for easy identification
+- **Hover Path Visualization**: When hovering over any cell, a subtle path lights up from the center to that cell, making it easy to identify which habit you're selecting
 - **Responsive Layout**: Centered design that adapts to your viewport
 - **Local Storage Persistence**: Your habit progress, habit names, and month are automatically saved and persist across browser sessions
 - **Clear All Data**: Subtle clear button with confirmation modal to reset all tracking data when starting a new month or habit set
