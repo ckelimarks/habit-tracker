@@ -11,6 +11,7 @@ A beautiful, interactive circular habit tracker built with vanilla JavaScript an
 - **Color-Coded**: Each habit has its own distinct pastel color for easy identification
 - **Responsive Layout**: Centered design that adapts to your viewport
 - **Local Storage Persistence**: Your habit progress, habit names, and month are automatically saved and persist across browser sessions
+- **Clear All Data**: Subtle clear button with confirmation modal to reset all tracking data when starting a new month or habit set
 
 ## Usage
 
@@ -19,6 +20,7 @@ Simply open `habit.html` in your web browser to start tracking your habits.
 - Click on any cell in the circular grid to mark that habit as completed for that day
 - Edit habit names by clicking on the input fields on the left side
 - Change the month by clicking on the center label
+- Use the "Clear All" button in the bottom-right corner to reset all data (with confirmation)
 
 ## Future Features
 
