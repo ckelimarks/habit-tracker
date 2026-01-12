@@ -38,9 +38,13 @@
             cursor: pointer;
             transition: fill 0.1s;
         }
-        
+
         .cell:hover {
             fill: #3a3a3a;
+        }
+
+        .hover-path {
+            opacity: 0.5;
         }
 
         .day-label {
@@ -376,11 +380,63 @@
                     let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     path.setAttribute("d", describeArc(rInner, rOuter, a1, a2));
                     path.setAttribute("class", "cell");
+                    path.setAttribute("data-habit", i);
+                    path.setAttribute("data-day", d);
 
-                    path.addEventListener('click', function() {
+                    path.addEventListener('click', function(e) {
+                        // Clear any hover effects first
+                        document.querySelectorAll('.hover-path').forEach(cell => {
+                            cell.classList.remove('hover-path');
+                            if (!cell.classList.contains('active')) {
+                                cell.style.fill = '';
+                            }
+                        });
+
                         this.classList.toggle('active');
                         this.style.fill = this.classList.contains('active') ? color : '';
                         saveToLocalStorage();
+                    });
+
+                    // Hover path effect
+                    path.addEventListener('mouseenter', function() {
+                        const habitIndex = parseInt(this.getAttribute('data-habit'));
+                        const dayIndex = parseInt(this.getAttribute('data-day'));
+
+                        // Highlight all cells in this habit row from day 0 to current day
+                        const cells = document.querySelectorAll('.cell');
+                        cells.forEach(cell => {
+                            const cellHabit = parseInt(cell.getAttribute('data-habit'));
+                            const cellDay = parseInt(cell.getAttribute('data-day'));
+
+                            // Apply hover-path to cells before the hovered one (< not <=)
+                            if (cellHabit === habitIndex && cellDay < dayIndex && !cell.classList.contains('active')) {
+                                cell.classList.add('hover-path');
+                                cell.style.fill = color;
+                            }
+                        });
+
+                        // Make the hovered cell full opacity
+                        if (!this.classList.contains('active')) {
+                            this.style.fill = color;
+                        }
+                    });
+
+                    path.addEventListener('mouseleave', function() {
+                        // Remove hover effect from all non-active cells
+                        const cells = document.querySelectorAll('.cell');
+                        cells.forEach(cell => {
+                            if (cell.classList.contains('hover-path')) {
+                                cell.classList.remove('hover-path');
+                                if (!cell.classList.contains('active')) {
+                                    cell.style.fill = '';
+                                }
+                            }
+                        });
+
+                        // Clear the hovered cell itself if not active
+                        if (!this.classList.contains('active')) {
+                            this.style.fill = '';
+                        }
                     });
 
                     svg.appendChild(path);
