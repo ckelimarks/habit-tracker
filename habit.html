@@ -110,6 +110,104 @@
             color: #666;
         }
 
+        /* Clear Button */
+        .clear-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: transparent;
+            border: 1px solid #555;
+            color: #888;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 100;
+        }
+
+        .clear-button:hover {
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #2a2a2a;
+            border: 2px solid #555;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal h2 {
+            color: #e0e0e0;
+            font-size: 24px;
+            margin: 0 0 15px 0;
+            font-weight: 500;
+        }
+
+        .modal p {
+            color: #aaa;
+            font-size: 14px;
+            margin: 0 0 25px 0;
+            line-height: 1.5;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .modal-button {
+            padding: 10px 24px;
+            border-radius: 4px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .modal-button.cancel {
+            background: #3a3a3a;
+            color: #e0e0e0;
+        }
+
+        .modal-button.cancel:hover {
+            background: #4a4a4a;
+        }
+
+        .modal-button.confirm {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .modal-button.confirm:hover {
+            background: #ff5252;
+        }
+
     </style>
 </head>
 <body>
@@ -119,6 +217,19 @@
         <div id="inputContainer"></div>
         <div class="month-display">
             <input type="text" id="monthInput" placeholder="JAN" maxlength="3">
+        </div>
+    </div>
+
+    <button class="clear-button" id="clearButton">Clear All</button>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2>Are You Sure?</h2>
+            <p>This will clear all your habit progress, habit names, and month data. This action is irreversible.</p>
+            <div class="modal-buttons">
+                <button class="modal-button cancel" id="cancelButton">Cancel</button>
+                <button class="modal-button confirm" id="confirmButton">Clear Everything</button>
+            </div>
         </div>
     </div>
 
@@ -138,6 +249,39 @@
         const colors = [
             '#FF9AA2', '#FFB7B2', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA'
         ];
+
+        // Local Storage Functions
+        function saveToLocalStorage() {
+            const data = {
+                month: document.getElementById('monthInput').value,
+                habitNames: [],
+                completedCells: []
+            };
+
+            // Save habit names
+            const habitInputs = document.querySelectorAll('.input-line input');
+            habitInputs.forEach(input => {
+                data.habitNames.push(input.value);
+            });
+
+            // Save completed cells
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, index) => {
+                if (cell.classList.contains('active')) {
+                    data.completedCells.push(index);
+                }
+            });
+
+            localStorage.setItem('habitTrackerData', JSON.stringify(data));
+        }
+
+        function loadFromLocalStorage() {
+            const savedData = localStorage.getItem('habitTrackerData');
+            if (savedData) {
+                return JSON.parse(savedData);
+            }
+            return null;
+        }
 
         function polarToCartesian(radius, angleInDegrees) {
             var radians = (angleInDegrees * Math.PI) / 180.0;
@@ -166,10 +310,19 @@
 
         function initializeMonth() {
             const monthInput = document.getElementById('monthInput');
-            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
-                              'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-            const currentMonth = new Date().getMonth();
-            monthInput.value = monthNames[currentMonth];
+            const savedData = loadFromLocalStorage();
+
+            if (savedData && savedData.month) {
+                monthInput.value = savedData.month;
+            } else {
+                const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                                  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                const currentMonth = new Date().getMonth();
+                monthInput.value = monthNames[currentMonth];
+            }
+
+            // Add event listener to save month changes
+            monthInput.addEventListener('input', saveToLocalStorage);
         }
 
         function init() {
@@ -179,8 +332,11 @@
             // Initialize month display
             initializeMonth();
 
+            // Load saved data
+            const savedData = loadFromLocalStorage();
+
             for (let i = 0; i < config.habitCount; i++) {
-                
+
                 let rInner = config.innerRadius + (i * config.rowHeight);
                 let rOuter = rInner + config.rowHeight;
                 let color = colors[i % colors.length];
@@ -190,17 +346,27 @@
                 // rInner is the distance from center. At top, Y is negative.
                 // We want the BOTTOM of the text box to sit at -rInner.
                 // Since the box has height = rowHeight, the TOP must be at -(rInner + rowHeight).
-                
+
                 let lineDiv = document.createElement('div');
                 lineDiv.className = 'input-line';
-                lineDiv.style.top = `${-(rInner + config.rowHeight)}px`; 
-                lineDiv.style.height = `${config.rowHeight}px`; 
-                
+                lineDiv.style.top = `${-(rInner + config.rowHeight)}px`;
+                lineDiv.style.height = `${config.rowHeight}px`;
+
                 // Outer ring = Habit 1
-                let habitNumber = config.habitCount - i; 
-                
-                lineDiv.innerHTML = `<input type="text" value="Habit ${habitNumber}" style="border-bottom-color: ${color}">`;
+                let habitNumber = config.habitCount - i;
+
+                // Use saved habit name if available
+                let habitName = `Habit ${habitNumber}`;
+                if (savedData && savedData.habitNames && savedData.habitNames[i]) {
+                    habitName = savedData.habitNames[i];
+                }
+
+                lineDiv.innerHTML = `<input type="text" value="${habitName}" style="border-bottom-color: ${color}">`;
                 inputContainer.appendChild(lineDiv);
+
+                // Add event listener to save habit name changes
+                const input = lineDiv.querySelector('input');
+                input.addEventListener('input', saveToLocalStorage);
 
                 // --- SVG GRID GENERATION ---
                 for (let d = 0; d < config.days; d++) {
@@ -210,10 +376,11 @@
                     let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     path.setAttribute("d", describeArc(rInner, rOuter, a1, a2));
                     path.setAttribute("class", "cell");
-                    
+
                     path.addEventListener('click', function() {
                         this.classList.toggle('active');
                         this.style.fill = this.classList.contains('active') ? color : '';
+                        saveToLocalStorage();
                     });
 
                     svg.appendChild(path);
@@ -222,7 +389,7 @@
                         let midAngle = a1 + (anglePerDay/2);
                         let labelRadius = rOuter + 15;
                         let pos = polarToCartesian(labelRadius, midAngle);
-                        
+
                         let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                         text.setAttribute("x", pos.x);
                         text.setAttribute("y", pos.y);
@@ -233,7 +400,57 @@
                     }
                 }
             }
+
+            // Apply saved completed cells
+            if (savedData && savedData.completedCells) {
+                const cells = document.querySelectorAll('.cell');
+                savedData.completedCells.forEach(index => {
+                    if (cells[index]) {
+                        cells[index].classList.add('active');
+                        // Calculate the habit index to get the right color
+                        const habitIndex = Math.floor(index / config.days);
+                        const color = colors[habitIndex % colors.length];
+                        cells[index].style.fill = color;
+                    }
+                });
+            }
         }
+
+        // Clear All Functionality
+        function clearAllData() {
+            // Clear localStorage
+            localStorage.removeItem('habitTrackerData');
+
+            // Reload the page to reset everything
+            location.reload();
+        }
+
+        function showModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function hideModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // Event Listeners for Clear Button and Modal
+        document.getElementById('clearButton').addEventListener('click', showModal);
+        document.getElementById('cancelButton').addEventListener('click', hideModal);
+        document.getElementById('confirmButton').addEventListener('click', clearAllData);
+
+        // Close modal when clicking outside of it
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                hideModal();
+            }
+        });
 
         init();
     </script>

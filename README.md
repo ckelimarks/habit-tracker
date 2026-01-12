@@ -10,6 +10,7 @@ A beautiful, interactive circular habit tracker built with vanilla JavaScript an
 - **Month Display**: Label your tracker with the current month
 - **Color-Coded**: Each habit has its own distinct pastel color for easy identification
 - **Responsive Layout**: Centered design that adapts to your viewport
+- **Local Storage Persistence**: Your habit progress, habit names, and month are automatically saved and persist across browser sessions
 
 ## Usage
 
@@ -21,7 +22,6 @@ Simply open `habit.html` in your web browser to start tracking your habits.
 
 ## Future Features
 
-- **Local Storage Persistence**: Save your habit data locally so progress persists across browser sessions
 - **CSV Download/Export**: Export your habit tracking data to CSV format for analysis and backup
 
 ## License
