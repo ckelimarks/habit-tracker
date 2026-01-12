@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Circular Habit Tracker</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap');
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Anchor point in the exact middle of the screen */
+        .tracker-center-point {
+            position: relative;
+            width: 0;
+            height: 0;
+        }
+
+        svg {
+            position: absolute;
+            overflow: visible;
+            top: 0;
+            left: 0;
+        }
+
+        .cell {
+            fill: #2a2a2a;
+            stroke: #555;
+            stroke-width: 1.5px;
+            cursor: pointer;
+            transition: fill 0.1s;
+        }
+        
+        .cell:hover {
+            fill: #3a3a3a;
+        }
+
+        .day-label {
+            font-size: 10px;
+            text-anchor: middle;
+            fill: #e0e0e0;
+        }
+
+        /* Input Lines */
+        .input-line {
+            position: absolute;
+            display: flex;
+            align-items: flex-end; /* Align text to bottom border */
+            width: 330px; /* Length of the line */
+            right: 0px; /* Touch the vertical center line */
+            transform-origin: right center;
+            padding-right: 15px; /* Gap between text and vertical axis */
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        .input-line input {
+            width: 100%;
+            text-align: right;
+            border: none;
+            border-bottom: 2px solid #555;
+            background: transparent;
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            outline: none;
+            padding-bottom: 5px; /* Space above the line */
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        /* Month Display in Center */
+        .month-display {
+            position: absolute;
+            top: -20px; /* Center vertically */
+            left: -40px; /* Center horizontally */
+            width: 80px;
+            text-align: center;
+            z-index: 20;
+        }
+
+        .month-display input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid #666;
+            color: #e0e0e0;
+            font-family: 'Poppins', sans-serif;
+            font-size: 24px;
+            font-weight: 500;
+            text-align: center;
+            text-transform: uppercase;
+            outline: none;
+            width: 100%;
+            padding: 5px 0;
+            transition: border-color 0.2s;
+        }
+
+        .month-display input:focus {
+            border-bottom-color: #999;
+        }
+
+        .month-display input::placeholder {
+            color: #666;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="tracker-center-point" id="anchor">
+        <svg id="habitSvg"></svg>
+        <div id="inputContainer"></div>
+        <div class="month-display">
+            <input type="text" id="monthInput" placeholder="JAN" maxlength="3">
+        </div>
+    </div>
+
+    <script>
+        const svg = document.getElementById('habitSvg');
+        const inputContainer = document.getElementById('inputContainer');
+
+        const config = {
+            habitCount: 6,
+            days: 31,
+            innerRadius: 120,    
+            rowHeight: 35,       
+            startAngle: -90,     // -90 degrees is 12 o'clock (Top)
+            gapSize: 90 // Change this to increase or decrease the gap between the habits and adjust the end angle of the circle         
+        };
+
+        const colors = [
+            '#FF9AA2', '#FFB7B2', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA'
+        ];
+
+        function polarToCartesian(radius, angleInDegrees) {
+            var radians = (angleInDegrees * Math.PI) / 180.0;
+            return {
+                x: radius * Math.cos(radians),
+                y: radius * Math.sin(radians)
+            };
+        }
+
+        function describeArc(innerR, outerR, startAngle, endAngle) {
+            var startOut = polarToCartesian(outerR, endAngle);
+            var endOut = polarToCartesian(outerR, startAngle);
+            var startIn = polarToCartesian(innerR, endAngle);
+            var endIn = polarToCartesian(innerR, startAngle);
+            var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+            return [
+                "M", startIn.x, startIn.y,
+                "L", startOut.x, startOut.y,
+                "A", outerR, outerR, 0, largeArcFlag, 0, endOut.x, endOut.y,
+                "L", endIn.x, endIn.y,
+                "A", innerR, innerR, 0, largeArcFlag, 1, startIn.x, startIn.y,
+                "Z"
+            ].join(" ");
+        }
+
+        function initializeMonth() {
+            const monthInput = document.getElementById('monthInput');
+            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
+                              'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const currentMonth = new Date().getMonth();
+            monthInput.value = monthNames[currentMonth];
+        }
+
+        function init() {
+            const endAngle = config.startAngle + (360 - config.gapSize);
+            const anglePerDay = (endAngle - config.startAngle) / config.days;
+
+            // Initialize month display
+            initializeMonth();
+
+            for (let i = 0; i < config.habitCount; i++) {
+                
+                let rInner = config.innerRadius + (i * config.rowHeight);
+                let rOuter = rInner + config.rowHeight;
+                let color = colors[i % colors.length];
+
+                // --- INPUT LINE GENERATION ---
+                // Calculation Fix: Subtract rowHeight to pull line up to the correct grid row.
+                // rInner is the distance from center. At top, Y is negative.
+                // We want the BOTTOM of the text box to sit at -rInner.
+                // Since the box has height = rowHeight, the TOP must be at -(rInner + rowHeight).
+                
+                let lineDiv = document.createElement('div');
+                lineDiv.className = 'input-line';
+                lineDiv.style.top = `${-(rInner + config.rowHeight)}px`; 
+                lineDiv.style.height = `${config.rowHeight}px`; 
+                
+                // Outer ring = Habit 1
+                let habitNumber = config.habitCount - i; 
+                
+                lineDiv.innerHTML = `<input type="text" value="Habit ${habitNumber}" style="border-bottom-color: ${color}">`;
+                inputContainer.appendChild(lineDiv);
+
+                // --- SVG GRID GENERATION ---
+                for (let d = 0; d < config.days; d++) {
+                    let a1 = config.startAngle + (d * anglePerDay);
+                    let a2 = config.startAngle + ((d + 1) * anglePerDay);
+
+                    let path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", describeArc(rInner, rOuter, a1, a2));
+                    path.setAttribute("class", "cell");
+                    
+                    path.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                        this.style.fill = this.classList.contains('active') ? color : '';
+                    });
+
+                    svg.appendChild(path);
+
+                    if (i === config.habitCount - 1) {
+                        let midAngle = a1 + (anglePerDay/2);
+                        let labelRadius = rOuter + 15;
+                        let pos = polarToCartesian(labelRadius, midAngle);
+                        
+                        let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        text.setAttribute("x", pos.x);
+                        text.setAttribute("y", pos.y);
+                        text.setAttribute("class", "day-label");
+                        text.setAttribute("transform", `rotate(${midAngle + 90}, ${pos.x}, ${pos.y})`);
+                        text.textContent = d + 1;
+                        svg.appendChild(text);
+                    }
+                }
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
